@@ -1,26 +1,109 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
-}
-
 @theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  /* === COLORS === */
+  /* Brand */
+  --color-buddy-bg: #F8F9FE;
+  --color-buddy-card: #FFFFFF;
+  --color-buddy-purple: #6D5DF6;
+  --color-buddy-purple-dim: #5441DC;
+  --color-buddy-purple-light: rgba(109, 93, 246, 0.1);
+  --color-buddy-purple-glow: rgba(109, 93, 246, 0.2);
+
+  /* Text */
+  --color-buddy-text-main: #1F2937;
+  --color-buddy-text-muted: #6B7280;
+  --color-buddy-text-subtle: #9CA3AF;
+
+  /* Surface */
+  --color-buddy-surface-low: #F6F1FF;
+  --color-buddy-surface-mid: #F0ECF9;
+
+  /* Semantic */
+  --color-buddy-border: #E5E7EB;
+  --color-buddy-border-strong: #D1D5DB;
+  --color-buddy-success: #10B981;
+  --color-buddy-error: #EF4444;
+  --color-buddy-warning: #F59E0B;
+
+  /* === TYPOGRAPHY === */
+  --font-sans: var(--font-inter), "Inter", "Segoe UI", sans-serif;
+
+  /* === SHADOW === */
+  --shadow-card: 0 4px 12px rgba(0, 0, 0, 0.03);
+  --shadow-card-hover: 0 8px 24px rgba(0, 0, 0, 0.06);
+  --shadow-overlay: 0 20px 40px rgba(0, 0, 0, 0.08);
+  --shadow-purple: 0 10px 24px rgba(109, 93, 246, 0.24);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
-  }
+/* =====================
+   BASE
+   ===================== */
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  scroll-behavior: smooth;
 }
 
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  margin: 0;
+  min-height: 100vh;
+  background-color: #F8F9FE;
+  color: #1F2937;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* =====================
+   AUTH BACKGROUND
+   ===================== */
+.auth-bg {
+  background:
+    radial-gradient(ellipse 60% 50% at 10% 0%, rgba(109, 93, 246, 0.12) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 90% 100%, rgba(109, 93, 246, 0.08) 0%, transparent 60%),
+    #F8F9FE;
+}
+
+/* =====================
+   SIDEBAR ACTIVE
+   ===================== */
+.sidebar-active {
+  background: linear-gradient(90deg, rgba(109, 93, 246, 0.1) 0%, rgba(109, 93, 246, 0) 100%);
+  color: #6D5DF6;
+  border-right: 3px solid #6D5DF6;
+}
+
+/* =====================
+   INPUT FOCUS GLOW
+   ===================== */
+.input-field:focus {
+  outline: none;
+  border-color: #6D5DF6;
+  box-shadow: 0 0 0 3px rgba(109, 93, 246, 0.15);
+}
+
+.input-field.error {
+  border-color: #EF4444;
+  box-shadow: 0 0 0 3px rgba(239, 68, 68, 0.12);
+}
+
+/* =====================
+   SCROLLBAR
+   ===================== */
+::-webkit-scrollbar {
+  width: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #d1d5db;
+  border-radius: 10px;
 }

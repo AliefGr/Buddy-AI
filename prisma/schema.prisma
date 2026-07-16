@@ -1,0 +1,407 @@
+// prisma/schema.prisma
+
+generator client {
+  provider   = "prisma-client-js"
+  engineType = "library"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+// ─────────────────────────────────────────
+// AUTH
+// ─────────────────────────────────────────
+
+model User {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  name         String
+  passwordHash String?
+  avatarUrl    String?
+  role         UserRole @default(OWNER)
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  store    Store?
+  accounts Account[]
+
+  @@map("users")
+}
+
+model Account {
+  id                String @id @default(cuid())
+  userId            String
+  provider          String // "google", "credentials"
+  providerAccountId String
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([provider, providerAccountId])
+  @@map("accounts")
+}
+
+enum UserRole {
+  OWNER
+  ADMIN
+  STAFF
+}
+
+// ─────────────────────────────────────────
+// STORE
+// ─────────────────────────────────────────
+
+model Store {
+  id        String   @id @default(cuid())
+  userId    String   @unique
+  name      String
+  currency  String   @default("IDR")
+  timezone  String   @default("Asia/Jakarta")
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
+  categories      Category[]
+  products        Product[]
+  customers       Customer[]
+  orders          Order[]
+  campaigns       Campaign[]
+  broadcasts      Broadcast[]
+  agendaItems     AgendaItem[]
+  aiInsights      AiInsight[]
+  aiConversations AiConversation[]
+  notifications   Notification[]
+
+  @@map("stores")
+}
+
+// ─────────────────────────────────────────
+// PRODUCTS
+// ─────────────────────────────────────────
+
+model Category {
+  id        String   @id @default(cuid())
+  storeId   String
+  name      String // "Minuman", "Makanan", "Snack"
+  color     String? // hex color untuk badge, e.g. "#6D5DF6"
+  createdAt DateTime @default(now())
+
+  store    Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@unique([storeId, name])
+  @@map("categories")
+}
+
+model Product {
+  id          String   @id @default(cuid())
+  storeId     String
+  categoryId  String
+  sku         String
+  name        String
+  description String?
+  price       Int // harga jual (rupiah)
+  costPrice   Int? // harga modal — untuk kalkulasi margin oleh AI
+  imageUrl    String?
+  isActive    Boolean  @default(true)
+  aiScore     Int? // 0–100, di-generate oleh AI
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+
+  store      Store          @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  category   Category       @relation(fields: [categoryId], references: [id])
+  inventory  InventoryItem?
+  orderItems OrderItem[]
+
+  @@unique([storeId, sku])
+  @@map("products")
+}
+
+// ─────────────────────────────────────────
+// INVENTORY
+// ─────────────────────────────────────────
+
+model InventoryItem {
+  id              String      @id @default(cuid())
+  productId       String      @unique
+  sku             String
+  currentStock    Int         @default(0)
+  minStock        Int         @default(0)
+  unit            String // "kg", "liter", "pcs"
+  status          StockStatus @default(NORMAL)
+  lastRestockedAt DateTime? // untuk AI: "Sudah 45 hari belum restock"
+  updatedAt       DateTime    @updatedAt
+
+  product        Product         @relation(fields: [productId], references: [id], onDelete: Cascade)
+  stockMovements StockMovement[]
+
+  @@map("inventory_items")
+}
+
+model StockMovement {
+  id              String       @id @default(cuid())
+  inventoryItemId String
+  type            MovementType // IN, OUT, ADJUSTMENT
+  quantity        Int
+  note            String?
+  createdAt       DateTime     @default(now())
+
+  inventoryItem InventoryItem @relation(fields: [inventoryItemId], references: [id], onDelete: Cascade)
+
+  @@map("stock_movements")
+}
+
+enum StockStatus {
+  NORMAL
+  LOW // currentStock < minStock
+  EMPTY // currentStock = 0
+}
+
+enum MovementType {
+  IN // restock
+  OUT // terjual / terpakai
+  ADJUSTMENT // koreksi manual
+}
+
+// ─────────────────────────────────────────
+// CUSTOMERS
+// ─────────────────────────────────────────
+
+model Customer {
+  id          String       @id @default(cuid())
+  storeId     String
+  name        String
+  email       String?
+  phone       String?
+  tier        CustomerTier @default(BRONZE)
+  lastOrderAt DateTime? // denormalized — untuk dashboard & AI query cepat
+  totalSpent  Int          @default(0) // denormalized — rupiah
+  joinedAt    DateTime     @default(now())
+  updatedAt   DateTime     @updatedAt
+
+  store  Store   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  orders Order[]
+
+  @@unique([storeId, email])
+  @@map("customers")
+}
+
+enum CustomerTier {
+  BRONZE
+  SILVER
+  GOLD
+  PLATINUM
+}
+
+// ─────────────────────────────────────────
+// ORDERS / SALES
+// ─────────────────────────────────────────
+
+model Order {
+  id            String        @id @default(cuid())
+  storeId       String
+  customerId    String?
+  orderNumber   String
+  status        OrderStatus   @default(PENDING)
+  paymentMethod PaymentMethod @default(CASH)
+  subtotal      Int // rupiah
+  discount      Int           @default(0)
+  total         Int
+  notes         String?
+  createdAt     DateTime      @default(now())
+  updatedAt     DateTime      @updatedAt
+
+  store    Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  customer Customer?   @relation(fields: [customerId], references: [id])
+  items    OrderItem[]
+
+  @@unique([storeId, orderNumber])
+  @@map("orders")
+}
+
+model OrderItem {
+  id        String @id @default(cuid())
+  orderId   String
+  productId String
+  quantity  Int
+  unitPrice Int // harga saat transaksi (snapshot, bukan referensi)
+  subtotal  Int
+
+  order   Order   @relation(fields: [orderId], references: [id], onDelete: Cascade)
+  product Product @relation(fields: [productId], references: [id])
+
+  @@map("order_items")
+}
+
+enum OrderStatus {
+  PENDING
+  CONFIRMED
+  COMPLETED
+  CANCELLED
+}
+
+enum PaymentMethod {
+  CASH
+  QRIS
+  TRANSFER
+}
+
+// ─────────────────────────────────────────
+// CAMPAIGNS
+// ─────────────────────────────────────────
+
+model Campaign {
+  id          String         @id @default(cuid())
+  storeId     String
+  name        String
+  platform    String // "Instagram", "WhatsApp", "TikTok", "Email"
+  status      CampaignStatus @default(DRAFT)
+  budget      Int? // rupiah
+  reach       Int?
+  clicks      Int?
+  startDate   DateTime?
+  endDate     DateTime?
+  emoji       String?
+  aiGenerated Boolean        @default(false) // true = dibuat oleh AI
+  createdAt   DateTime       @default(now())
+  updatedAt   DateTime       @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@map("campaigns")
+}
+
+enum CampaignStatus {
+  DRAFT
+  ACTIVE
+  PAUSED
+  COMPLETED
+}
+
+// ─────────────────────────────────────────
+// BROADCASTS
+// ─────────────────────────────────────────
+
+model Broadcast {
+  id          String           @id @default(cuid())
+  storeId     String
+  title       String
+  channel     BroadcastChannel // WHATSAPP, EMAIL, SMS
+  status      BroadcastStatus  @default(DRAFT)
+  content     String // isi pesan
+  recipients  Int              @default(0)
+  readCount   Int              @default(0)
+  failedCount Int              @default(0) // untuk tracking gagal kirim
+  scheduledAt DateTime?
+  sentAt      DateTime?
+  createdAt   DateTime         @default(now())
+  updatedAt   DateTime         @updatedAt
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@map("broadcasts")
+}
+
+enum BroadcastChannel {
+  WHATSAPP
+  EMAIL
+  SMS
+}
+
+enum BroadcastStatus {
+  DRAFT
+  SCHEDULED
+  SENT
+}
+
+// ─────────────────────────────────────────
+// DAILY BRIEF — AGENDA
+// ─────────────────────────────────────────
+
+model AgendaItem {
+  id        String   @id @default(cuid())
+  storeId   String
+  time      String // "09:00"
+  title     String
+  tag       String? // "Inventory", "Produk", dll
+  date      DateTime
+  createdAt DateTime @default(now())
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@map("agenda_items")
+}
+
+// ─────────────────────────────────────────
+// AI INSIGHTS (cache hasil generate AI)
+// ─────────────────────────────────────────
+
+model AiInsight {
+  id          String      @id @default(cuid())
+  storeId     String
+  type        InsightType
+  content     Json // pakai Json — tidak perlu serialize/deserialize manual
+  generatedAt DateTime    @default(now())
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, type])
+  @@map("ai_insights")
+}
+
+enum InsightType {
+  DAILY_BRIEF
+  CUSTOMER
+  PRODUCT
+  INVENTORY
+  CAMPAIGN
+  ANALYTICS
+}
+
+// ─────────────────────────────────────────
+// AI CONVERSATION HISTORY
+// ─────────────────────────────────────────
+
+model AiConversation {
+  id        String           @id @default(cuid())
+  storeId   String
+  role      ConversationRole // USER, ASSISTANT
+  content   String
+  createdAt DateTime         @default(now())
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, createdAt])
+  @@map("ai_conversations")
+}
+
+enum ConversationRole {
+  USER
+  ASSISTANT
+}
+
+// ─────────────────────────────────────────
+// NOTIFICATIONS
+// ─────────────────────────────────────────
+
+model Notification {
+  id        String           @id @default(cuid())
+  storeId   String
+  type      NotificationType
+  title     String
+  message   String
+  isRead    Boolean          @default(false)
+  createdAt DateTime         @default(now())
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, isRead])
+  @@map("notifications")
+}
+
+enum NotificationType {
+  STOCK_LOW // stok hampir habis
+  CAMPAIGN_ENDED // campaign selesai
+  NEW_ORDER // order baru masuk
+  AI_COMPLETE // AI selesai generate insight
+}
