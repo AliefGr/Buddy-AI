@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/session";
 import { generateText, isAIConfigured } from "@/lib/ai";
 import { z } from "zod";
+import type { Prisma } from "@prisma/client";
 
 const chatSchema = z.object({
   message: z.string().min(1).max(2000),
@@ -23,11 +24,16 @@ async function buildBusinessContext(storeId: string): Promise<string> {
   const startOfToday = new Date(now);
   startOfToday.setHours(0, 0, 0, 0);
 
+  interface TopProduct {
+    productId: string | null;
+    _sum: { quantity: number | null };
+  }
+
   const [
     revenueAgg,
     ordersToday,
     lowStockItems,
-    topProducts,
+    topProductsUncast,
     recentOrders,
     totalCustomers,
   ] = await Promise.all([
@@ -65,17 +71,24 @@ async function buildBusinessContext(storeId: string): Promise<string> {
     prisma.customer.count({ where: { storeId } }),
   ]);
 
-  const topProductIds = topProducts.map((p) => p.productId);
+  const topProducts = topProductsUncast as unknown as TopProduct[];
+
+  const topProductIds = topProducts
+    .map((p: TopProduct) => p.productId)
+    .filter((id): id is string => id !== null);
   const topProductDetails = await prisma.product.findMany({
     where: { id: { in: topProductIds } },
     select: { id: true, name: true, price: true },
   });
 
   const topProductsText = topProducts
-    .map((p) => {
+    .map((p: TopProduct) => {
+      if (!p.productId) return null;
       const detail = topProductDetails.find((d) => d.id === p.productId);
-      return `${detail?.name ?? "Unknown"} (${p._sum.quantity} terjual)`;
+      const quantity = p._sum.quantity ?? 0;
+      return `${detail?.name ?? "Unknown"} (${quantity} terjual)`;
     })
+    .filter((text): text is string => text !== null)
     .join(", ");
 
   const lowStockText =

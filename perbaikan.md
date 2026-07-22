@@ -1,283 +1,216 @@
-Yang menurutku perlu diperbaiki
-1. Store
+# TASK
 
-Sekarang
+Lakukan audit dan perbaikan seluruh TypeScript error yang menyebabkan build gagal di Vercel.
 
-Store
+Jangan hanya memperbaiki satu baris kode.
+
+Cari akar masalahnya dan pastikan project dapat di-build dengan sukses menggunakan:
+
+```bash
+npm run build
+```
+
+---
+
+# ERROR SAAT INI
+
+Vercel Build Error:
+
+```
+Type error:
+
+./app/api/ai/chat/route.ts:68:42
+
+Parameter 'p' implicitly has an 'any' type.
+
+const topProductIds = topProducts.map((p) => p.productId);
+```
+
+Build gagal pada tahap:
+
+```
+Running TypeScript...
+```
+
+Bukan saat compile.
+
+---
+
+# TUJUAN
+
+Saya ingin project benar-benar lolos:
+
+- TypeScript Check
+- Next.js Build
+- Vercel Deployment
+
+Tanpa mengorbankan type safety.
+
+---
+
+# YANG HARUS DILAKUKAN
+
+## 1. Audit file
+
+Periksa:
+
+```
+app/api/ai/chat/route.ts
+```
+
+Cari asal variabel:
+
+```
+topProducts
+```
+
+Identifikasi:
+
+- berasal dari query Prisma?
+- berasal dari raw query?
+- berasal dari array biasa?
+- apakah tipenya hilang?
+
+---
+
+## 2. Jangan gunakan implicit any
+
+Jangan gunakan:
+
+```ts
+(p)
+```
+
+atau
+
+```ts
+(item)
+```
+
+tanpa tipe.
+
+Gunakan tipe yang benar.
+
+Misalnya:
+
+```ts
+(p: PrismaType)
+```
+
+atau
+
+```ts
+type TopProduct = {
+  productId: string | null;
+}
+
+const topProducts: TopProduct[] = ...
+```
+
+Gunakan tipe Prisma jika sudah tersedia.
+
+Jangan menggunakan `any` kecuali benar-benar tidak ada alternatif.
+
+---
+
+## 3. Audit seluruh file
+
+Jangan berhenti setelah memperbaiki satu error.
+
+Lanjutkan audit seluruh project.
+
+Cari:
+
+- implicit any
+- unknown
+- nullable
+- optional chaining yang salah
+- Prisma typing
+- callback map/filter/reduce
+- async return type
+- Promise typing
+
+Pastikan tidak ada lagi TypeScript Error.
+
+---
+
+## 4. Jalankan Build
+
+Setelah selesai lakukan pengecekan dengan:
+
+```bash
+npm run build
+```
+
+Jika masih gagal,
+
+lanjutkan memperbaiki semua error berikutnya.
+
+Jangan berhenti sampai build sukses.
+
+---
+
+## 5. Jangan menurunkan kualitas TypeScript
+
+DILARANG:
+
+❌ menonaktifkan TypeScript
+
+❌ skipLibCheck untuk menyembunyikan error project
+
+❌ strict = false
+
+❌ noImplicitAny = false
+
+❌ ignoreBuildErrors = true
+
+Saya ingin TypeScript tetap strict.
+
+---
+
+## 6. Pertahankan Arsitektur
+
+Jangan mengubah:
+
+- struktur folder
+- API
+- Prisma Schema
+- Business Logic
+
+Hanya perbaiki typing.
+
+---
+
+# OUTPUT
+
+Berikan laporan:
+
+## Error yang ditemukan
+
+- File
+- Baris
+- Penyebab
+
+## Solusi
+
+Kode sebelum
 
 ↓
 
-Campaign
+Kode sesudah
 
 ↓
 
-Broadcast
+Alasan perubahan
 
-↓
+Kemudian lanjutkan sampai:
 
-Agenda
+```
+✓ TypeScript passed
 
-Tapi
+✓ npm run build berhasil
 
-AI Insight
+✓ Siap deploy ke Vercel
+```
 
-tidak memiliki relation.
-
-Sekarang hanya
-
-storeId
-
-Menurutku
-
-lebih baik
-
-store Store
-
-jadi
-
-store Store @relation(...)
-
-lebih konsisten.
-
-2. Product
-
-Sekarang
-
-imageEmoji
-
-imageUrl
-
-Menurutku
-
-hapus
-
-imageEmoji
-
-Kenapa?
-
-Karena nanti UI sudah memakai image upload.
-
-Emoji hanya dummy.
-
-3. Inventory
-
-Menurutku
-
-tambahkan
-
-lastRestockedAt
-
-supaya AI bisa bilang
-
-Sudah 45 hari belum restock.
-
-4. Customer
-
-Sekarang
-
-Customer
-
-↓
-
-Order
-
-Menurutku kurang.
-
-Tambahkan
-
-lastOrderAt
-
-totalSpent
-
-Memang bisa dihitung dari Order, tapi untuk dashboard dan AI akan jauh lebih cepat kalau nilainya sudah tersedia.
-
-5. Order
-
-Tambahkan
-
-paymentMethod
-
-cash
-
-qris
-
-transfer
-
-Karena dashboard biasanya menampilkan metode pembayaran.
-
-6. Product
-
-Tambahkan
-
-costPrice
-
-Sekarang hanya
-
-price
-
-Padahal AI nanti bisa menghitung margin.
-
-7. Category
-
-Tambahkan
-
-color
-
-Supaya badge kategori konsisten.
-
-8. Campaign
-
-Tambahkan
-
-aiGenerated Boolean
-
-Supaya tahu campaign dibuat AI atau manual.
-
-9. Broadcast
-
-Tambahkan
-
-failedCount
-
-Kalau nanti ada simulasi broadcast.
-
-10. AI Insight
-
-Sekarang
-
-content String
-
-Aku lebih suka
-
-Json
-
-Prisma mendukung tipe Json di PostgreSQL.
-
-Jadi tidak perlu serialize.
-
-Contoh:
-
-content Json
-
-Lebih fleksibel untuk menyimpan hasil AI.
-
-Yang menurutku kurang besar
-
-Ini.
-
-Tidak ada
-
-Report
-
-Padahal UI ada.
-
-Menurutku
-
-Report tidak perlu tabel.
-
-Karena bisa dihasilkan dari Order.
-
-Jadi tidak perlu model.
-
-Bagus.
-
-Yang menurutku perlu ditambah
-Notification
-
-Misalnya
-
-Stock hampir habis
-
-Campaign selesai
-
-Order baru
-
-AI selesai generate
-
-Satu model
-
-Notification
-
-cukup.
-
-Yang paling penting
-
-Menurutku
-
-AI sebaiknya punya
-
-History.
-
-Misalnya
-
-AiConversation
-
-id
-
-storeId
-
-role
-
-content
-
-createdAt
-
-Karena nanti
-
-AI Assistant
-
-bisa mengingat percakapan.
-
-Overall Architecture
-
-Aku melihatnya seperti ini.
-
-User
-        │
-        ▼
-Store
-        │
- ┌──────┼───────────────┐
- │      │               │
- ▼      ▼               ▼
-Product Customer     Campaign
- │        │               │
- ▼        ▼               ▼
-Inventory Order      Broadcast
-         │
-         ▼
-Analytics
-         │
-         ▼
-Gemini AI
-         │
-         ▼
-AI Insight
-
-Ini sudah sangat bagus dan mudah dipahami.
-
-Nilai Akhir
-Bagian	Nilai
-Auth	⭐⭐⭐⭐⭐
-Multi Tenant	⭐⭐⭐⭐⭐
-Inventory	⭐⭐⭐⭐⭐
-Sales	⭐⭐⭐⭐⭐
-AI Ready	⭐⭐⭐⭐⭐
-Maintainability	⭐⭐⭐⭐⭐
-Scalability	⭐⭐⭐⭐⭐
-Normalisasi Data	⭐⭐⭐⭐☆
-
-Overall: 9.5/10
-
-🚨 Saran saya untuk challenge ini
-
-Saya justru tidak menyarankan menambah banyak model lagi.
-
-Fokus pada beberapa perbaikan yang benar-benar berguna:
-
-Ubah AiInsight.content dari String menjadi Json.
-Tambahkan relasi Store pada AiInsight.
-Tambahkan paymentMethod pada Order.
-Tambahkan costPrice pada Product (agar AI bisa menghitung margin).
-Tambahkan lastRestockedAt pada InventoryItem.
-
+Target akhirnya adalah project Buddy AI berhasil di-deploy ke Vercel tanpa TypeScript error.
