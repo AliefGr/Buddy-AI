@@ -1,15 +1,20 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/session";
-import { generateText, isGeminiConfigured } from "@/lib/gemini";
+import { generateText, isAIConfigured } from "@/lib/ai";
 import { z } from "zod";
 
 const chatSchema = z.object({
   message: z.string().min(1).max(2000),
-  history: z.array(z.object({
-    role: z.enum(["user", "ai"]),
-    content: z.string(),
-  })).optional().default([]),
+  history: z
+    .array(
+      z.object({
+        role: z.enum(["user", "ai"]),
+        content: z.string(),
+      }),
+    )
+    .optional()
+    .default([]),
 });
 
 async function buildBusinessContext(storeId: string): Promise<string> {
@@ -18,55 +23,72 @@ async function buildBusinessContext(storeId: string): Promise<string> {
   const startOfToday = new Date(now);
   startOfToday.setHours(0, 0, 0, 0);
 
-  const [revenueAgg, ordersToday, lowStockItems, topProducts, recentOrders, totalCustomers] =
-    await Promise.all([
-      prisma.order.aggregate({
-        where: { storeId, status: "COMPLETED", createdAt: { gte: startOfMonth } },
-        _sum: { total: true },
-        _count: true,
-      }),
-      prisma.order.count({
-        where: { storeId, status: "COMPLETED", createdAt: { gte: startOfToday } },
-      }),
-      prisma.inventoryItem.findMany({
-        where: { product: { storeId }, status: { in: ["LOW", "EMPTY"] } },
-        include: { product: { select: { name: true } } },
-        take: 5,
-      }),
-      prisma.orderItem.groupBy({
-        by: ["productId"],
-        where: { order: { storeId, status: "COMPLETED" } },
-        _sum: { quantity: true },
-        orderBy: { _sum: { quantity: "desc" } },
-        take: 3,
-      }),
-      prisma.order.findMany({
-        where: { storeId },
-        orderBy: { createdAt: "desc" },
-        take: 5,
-        select: { orderNumber: true, total: true, createdAt: true, customer: { select: { name: true } } },
-      }),
-      prisma.customer.count({ where: { storeId } }),
-    ]);
+  const [
+    revenueAgg,
+    ordersToday,
+    lowStockItems,
+    topProducts,
+    recentOrders,
+    totalCustomers,
+  ] = await Promise.all([
+    prisma.order.aggregate({
+      where: { storeId, status: "COMPLETED", createdAt: { gte: startOfMonth } },
+      _sum: { total: true },
+      _count: true,
+    }),
+    prisma.order.count({
+      where: { storeId, status: "COMPLETED", createdAt: { gte: startOfToday } },
+    }),
+    prisma.inventoryItem.findMany({
+      where: { product: { storeId }, status: { in: ["LOW", "EMPTY"] } },
+      include: { product: { select: { name: true } } },
+      take: 5,
+    }),
+    prisma.orderItem.groupBy({
+      by: ["productId"],
+      where: { order: { storeId, status: "COMPLETED" } },
+      _sum: { quantity: true },
+      orderBy: { _sum: { quantity: "desc" } },
+      take: 3,
+    }),
+    prisma.order.findMany({
+      where: { storeId },
+      orderBy: { createdAt: "desc" },
+      take: 5,
+      select: {
+        orderNumber: true,
+        total: true,
+        createdAt: true,
+        customer: { select: { name: true } },
+      },
+    }),
+    prisma.customer.count({ where: { storeId } }),
+  ]);
 
-  const topProductIds = topProducts.map(p => p.productId);
+  const topProductIds = topProducts.map((p) => p.productId);
   const topProductDetails = await prisma.product.findMany({
     where: { id: { in: topProductIds } },
     select: { id: true, name: true, price: true },
   });
 
-  const topProductsText = topProducts.map(p => {
-    const detail = topProductDetails.find(d => d.id === p.productId);
-    return `${detail?.name ?? "Unknown"} (${p._sum.quantity} terjual)`;
-  }).join(", ");
+  const topProductsText = topProducts
+    .map((p) => {
+      const detail = topProductDetails.find((d) => d.id === p.productId);
+      return `${detail?.name ?? "Unknown"} (${p._sum.quantity} terjual)`;
+    })
+    .join(", ");
 
-  const lowStockText = lowStockItems.length > 0
-    ? lowStockItems.map(i => `${i.product.name} (${i.status})`).join(", ")
-    : "Semua stok dalam kondisi normal";
+  const lowStockText =
+    lowStockItems.length > 0
+      ? lowStockItems.map((i) => `${i.product.name} (${i.status})`).join(", ")
+      : "Semua stok dalam kondisi normal";
 
-  const recentOrdersText = recentOrders.map(o =>
-    `${o.orderNumber}: Rp ${o.total.toLocaleString("id-ID")} (${o.customer?.name ?? "Walk-in"})`
-  ).join("\n");
+  const recentOrdersText = recentOrders
+    .map(
+      (o) =>
+        `${o.orderNumber}: Rp ${o.total.toLocaleString("id-ID")} (${o.customer?.name ?? "Walk-in"})`,
+    )
+    .join("\n");
 
   return `
 === DATA BISNIS REAL-TIME ===
@@ -96,13 +118,13 @@ export async function POST(request: NextRequest) {
   try {
     const { storeId } = await requireAuth();
 
-    if (!isGeminiConfigured()) {
+    if (!isAIConfigured()) {
       return Response.json(
-        { error: "AI belum dikonfigurasi. Tambahkan GEMINI_API_KEY di .env" },
-        { status: 503 }
+        { error: "AI belum dikonfigurasi. Tambahkan GROQ_API_KEY di .env" },
+        { status: 503 },
       );
     }
-    console.log("API KEY:", process.env.GEMINI_API_KEY?.slice(0, 10));
+    console.log("API KEY:", process.env.GROQ_API_KEY?.slice(0, 10));
 
     const body = await request.json();
     const parsed = chatSchema.safeParse(body);
@@ -114,11 +136,16 @@ export async function POST(request: NextRequest) {
     const { message, history } = parsed.data;
     const businessContext = await buildBusinessContext(storeId);
 
-    const historyText = history.length > 0
-      ? "\n\nRIWAYAT PERCAKAPAN:\n" + history.slice(-6).map(h =>
-        `${h.role === "user" ? "User" : "Buddy AI"}: ${h.content}`
-      ).join("\n")
-      : "";
+    const historyText =
+      history.length > 0
+        ? "\n\nRIWAYAT PERCAKAPAN:\n" +
+          history
+            .slice(-6)
+            .map(
+              (h) => `${h.role === "user" ? "User" : "Buddy AI"}: ${h.content}`,
+            )
+            .join("\n")
+        : "";
 
     const prompt = `Kamu adalah Buddy AI, asisten bisnis cerdas untuk UMKM Indonesia.
 Kamu membantu pemilik usaha menganalisis data bisnis, memberikan insight, dan rekomendasi actionable.
@@ -151,6 +178,9 @@ JAWABAN BUDDY AI:`;
   } catch (error) {
     const msg = error instanceof Error ? error.message : String(error);
     console.error("[AI Chat]", error);
-    return Response.json({ error: "Gagal mendapatkan respons AI", detail: msg }, { status: 500 });
+    return Response.json(
+      { error: "Gagal mendapatkan respons AI", detail: msg },
+      { status: 500 },
+    );
   }
 }

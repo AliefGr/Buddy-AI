@@ -4,7 +4,7 @@ import { requireAuth } from "@/lib/session";
 import { z } from "zod";
 
 const createSchema = z.object({
-  name: z.string().min(1, "Nama kategori wajib diisi").max(50),
+  name: z.string().min(2, "Nama kategori minimal 2 karakter").max(50),
   color: z.string().optional(),
 });
 

@@ -1,12 +1,12 @@
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/session";
-import { generateText, isGeminiConfigured } from "@/lib/gemini";
+import { generateText, isAIConfigured } from "@/lib/ai";
 
 export async function POST() {
   try {
     const { storeId } = await requireAuth();
 
-    if (!isGeminiConfigured()) {
+    if (!isAIConfigured()) {
       return Response.json({ error: "AI tidak dikonfigurasi" }, { status: 503 });
     }
 

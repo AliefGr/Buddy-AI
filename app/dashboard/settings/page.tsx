@@ -4,6 +4,7 @@ import { useState } from "react";
 import { SettingsNav } from "@/components/settings/SettingsNav";
 import { SettingsProfileForm } from "@/components/settings/SettingsProfileForm";
 import { SettingsBisnisForm } from "@/components/settings/SettingsBisnisForm";
+import { SettingsIntegrasiPanel } from "@/components/settings/SettingsIntegrasiPanel";
 import { SettingsNotifPanel } from "@/components/settings/SettingsNotifPanel";
 import { SettingsSecurityPanel } from "@/components/settings/SettingsSecurityPanel";
 import { SettingsSubscriptionPanel } from "@/components/settings/SettingsSubscriptionPanel";
@@ -15,6 +16,8 @@ function SettingsContent({ tab }: { tab: SettingsTab }) {
             return <SettingsProfileForm />;
         case "bisnis":
             return <SettingsBisnisForm />;
+        case "integrasi":
+            return <SettingsIntegrasiPanel />;
         case "notifikasi":
             return <SettingsNotifPanel />;
         case "keamanan":

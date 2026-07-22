@@ -1,6 +1,5 @@
 "use client";
 
-import { useEffect, useState } from "react";
 import { Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 
@@ -10,6 +9,11 @@ interface MonthlyData {
     orders: number;
 }
 
+interface ReportTableProps {
+    data: MonthlyData[];
+    loading: boolean;
+}
+
 function formatRupiah(n: number) {
     if (n >= 1_000_000_000) return `Rp ${(n / 1_000_000_000).toFixed(1)}M`;
     if (n >= 1_000_000) return `Rp ${(n / 1_000_000).toFixed(1)}Jt`;
@@ -17,30 +21,7 @@ function formatRupiah(n: number) {
     return `Rp ${n}`;
 }
 
-export function ReportTable() {
-    const [data, setData] = useState<MonthlyData[]>([]);
-    const [loading, setLoading] = useState(true);
-
-    useEffect(() => {
-        fetch("/api/dashboard/sales-chart?days=30")
-            .then(r => r.json())
-            .then((points: { date: string; revenue: number; label: string }[]) => {
-                // Group by month
-                const monthMap: Record<string, { revenue: number; orders: number }> = {};
-                for (const p of points) {
-                    const d = new Date(p.date);
-                    const key = d.toLocaleDateString("id-ID", { month: "long", year: "numeric" });
-                    if (!monthMap[key]) monthMap[key] = { revenue: 0, orders: 0 };
-                    monthMap[key].revenue += p.revenue;
-                    monthMap[key].orders += p.revenue > 0 ? 1 : 0;
-                }
-                const result = Object.entries(monthMap).map(([month, v]) => ({ month, ...v }));
-                setData(result);
-                setLoading(false);
-            })
-            .catch(() => setLoading(false));
-    }, []);
-
+export function ReportTable({ data, loading }: ReportTableProps) {
     return (
         <Card padding="none" overflow className="col-span-1 lg:col-span-8">
             <div className="p-6 border-b border-gray-100">

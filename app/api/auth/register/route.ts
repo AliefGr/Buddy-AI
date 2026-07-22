@@ -5,9 +5,9 @@ import { z } from "zod";
 
 const registerSchema = z.object({
   name: z.string().min(1, "Nama wajib diisi"),
+  businessName: z.string().min(1, "Nama bisnis wajib diisi"),
   email: z.string().email("Format email tidak valid"),
   password: z.string().min(8, "Password minimal 8 karakter"),
-  storeName: z.string().optional(),
 });
 
 export async function POST(request: NextRequest) {
@@ -22,7 +22,7 @@ export async function POST(request: NextRequest) {
       );
     }
 
-    const { name, email, password, storeName } = parsed.data;
+    const { name, businessName, email, password } = parsed.data;
 
     const existing = await prisma.user.findUnique({ where: { email } });
     if (existing) {
@@ -41,8 +41,11 @@ export async function POST(request: NextRequest) {
         passwordHash,
         store: {
           create: {
-            name: storeName ?? `Toko ${name}`,
+            name: businessName,
           },
+        },
+        notificationSettings: {
+          create: {},
         },
       },
       include: { store: true },

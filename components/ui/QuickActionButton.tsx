@@ -6,6 +6,7 @@ interface QuickActionButtonProps {
     icon: React.ReactNode;
     label: string;
     iconColor: "purple" | "blue" | "green" | "amber";
+    onClick?: () => void;
 }
 
 const colorMap: Record<string, { idle: string; hover: string }> = {
@@ -27,11 +28,14 @@ const colorMap: Record<string, { idle: string; hover: string }> = {
     },
 };
 
-export function QuickActionButton({ icon, label, iconColor }: QuickActionButtonProps) {
+export function QuickActionButton({ icon, label, iconColor, onClick }: QuickActionButtonProps) {
     const colors = colorMap[iconColor];
 
     return (
-        <button className="bg-white border border-gray-100 p-4 rounded-3xl shadow-sm flex items-center gap-3 hover:border-buddy-purple transition-all group">
+        <button
+            className="bg-white border border-gray-100 p-4 rounded-3xl shadow-sm flex items-center gap-3 hover:border-buddy-purple transition-all group"
+            onClick={onClick}
+        >
             <div
                 className={cn(
                     "p-2 rounded-xl transition-colors",

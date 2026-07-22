@@ -19,14 +19,53 @@ model User {
   name         String
   passwordHash String?
   avatarUrl    String?
+  phone        String?
+  address      String?
+  bio          String?
   role         UserRole @default(OWNER)
   createdAt    DateTime @default(now())
   updatedAt    DateTime @updatedAt
 
-  store    Store?
-  accounts Account[]
+  store               Store?
+  accounts            Account[]
+  notificationSettings NotificationSettings?
+  passwordResetTokens PasswordResetToken[]
 
   @@map("users")
+}
+
+model PasswordResetToken {
+  id        String   @id @default(cuid())
+  token     String   @unique
+  userId    String
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([token])
+  @@map("password_reset_tokens")
+}
+
+model NotificationSettings {
+  id                   String  @id @default(cuid())
+  userId               String  @unique
+  emailNotification    Boolean @default(true)
+  whatsappNotification Boolean @default(true)
+  aiInsight            Boolean @default(true)
+  lowStock             Boolean @default(true)
+  dailyBrief           Boolean @default(true)
+  marketingReminder    Boolean @default(true)
+  weeklyReport         Boolean @default(true)
+  monthlyReport        Boolean @default(true)
+  campaignReminder     Boolean @default(true)
+  broadcastReminder    Boolean @default(true)
+  createdAt            DateTime @default(now())
+  updatedAt            DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("notification_settings")
 }
 
 model Account {
@@ -52,13 +91,47 @@ enum UserRole {
 // ─────────────────────────────────────────
 
 model Store {
-  id        String   @id @default(cuid())
-  userId    String   @unique
-  name      String
-  currency  String   @default("IDR")
-  timezone  String   @default("Asia/Jakarta")
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id                  String   @id @default(cuid())
+  userId              String   @unique
+  name                String
+  currency            String   @default("IDR")
+  timezone            String   @default("Asia/Jakarta")
+  address             String?
+  city                String?
+  province            String?
+  postalCode          String?
+  phone               String?
+  whatsapp            String?
+  logoUrl             String?
+  businessCategory    String?
+  description         String?
+  website             String?
+  operatingHours      String?
+  googleMapsLink      String?
+  npwp                String?
+  instagram           String?
+  facebook            String?
+  tiktok              String?
+  waBusinessPhoneId   String?
+  waBusinessAccountId String?
+  waBusinessApiKey    String?
+  waBusinessVerifyToken String?
+  waBusinessWebhookUrl String?
+  emailSmtpHost       String?
+  emailSmtpPort       Int?
+  emailSmtpUser       String?
+  emailSmtpPassword   String?
+  emailEncryption     String?
+  emailSenderName     String?
+  emailSenderEmail    String?
+  instagramAccessToken String?
+  instagramBusinessAccount String?
+  facebookPageId      String?
+  facebookAccessToken String?
+  geminiApiKey        String?
+  geminiModel         String? @default("gemini-2.0-flash")
+  createdAt           DateTime @default(now())
+  updatedAt           DateTime @updatedAt
 
   user            User             @relation(fields: [userId], references: [id], onDelete: Cascade)
   categories      Category[]
@@ -174,6 +247,8 @@ model Customer {
   email       String?
   phone       String?
   tier        CustomerTier @default(BRONZE)
+  optInWhatsApp Boolean    @default(true)
+  optInEmail    Boolean    @default(true)
   lastOrderAt DateTime? // denormalized — untuk dashboard & AI query cepat
   totalSpent  Int          @default(0) // denormalized — rupiah
   joinedAt    DateTime     @default(now())
@@ -251,31 +326,32 @@ enum PaymentMethod {
 // ─────────────────────────────────────────
 
 model Campaign {
-  id          String         @id @default(cuid())
-  storeId     String
-  name        String
-  platform    String // "Instagram", "WhatsApp", "TikTok", "Email"
-  status      CampaignStatus @default(DRAFT)
-  budget      Int? // rupiah
-  reach       Int?
-  clicks      Int?
-  startDate   DateTime?
-  endDate     DateTime?
-  emoji       String?
-  aiGenerated Boolean        @default(false) // true = dibuat oleh AI
-  createdAt   DateTime       @default(now())
-  updatedAt   DateTime       @updatedAt
+  id               String         @id @default(cuid())
+  storeId          String
+  name             String
+  objective        String?
+  description      String?
+  targetCustomer   String?
+  promotionType    String?
+  promotionValue   Int?
+  startDate        DateTime?
+  endDate          DateTime?
+  status           CampaignStatus @default(DRAFT)
+  aiGenerated      Boolean        @default(false)
+  createdAt        DateTime       @default(now())
+  updatedAt        DateTime       @updatedAt
 
-  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  store      Store       @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  broadcasts Broadcast[]
 
   @@map("campaigns")
 }
 
 enum CampaignStatus {
   DRAFT
+  SCHEDULED
   ACTIVE
-  PAUSED
-  COMPLETED
+  FINISHED
 }
 
 // ─────────────────────────────────────────
@@ -283,21 +359,28 @@ enum CampaignStatus {
 // ─────────────────────────────────────────
 
 model Broadcast {
-  id          String           @id @default(cuid())
-  storeId     String
-  title       String
-  channel     BroadcastChannel // WHATSAPP, EMAIL, SMS
-  status      BroadcastStatus  @default(DRAFT)
-  content     String // isi pesan
-  recipients  Int              @default(0)
-  readCount   Int              @default(0)
-  failedCount Int              @default(0) // untuk tracking gagal kirim
-  scheduledAt DateTime?
-  sentAt      DateTime?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id               String           @id @default(cuid())
+  storeId          String
+  campaignId       String?
+  title            String
+  channel          BroadcastChannel // WHATSAPP, EMAIL, SMS
+  status           BroadcastStatus  @default(DRAFT)
+  content          String // isi pesan
+  targetCustomer   String?
+  totalTarget      Int              @default(0)
+  successCount     Int              @default(0)
+  failedCount      Int              @default(0)
+  pendingCount     Int              @default(0)
+  deliveredCount   Int              @default(0)
+  readCount        Int              @default(0)
+  clickCount       Int              @default(0)
+  scheduledAt      DateTime?
+  sentAt           DateTime?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
-  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  store    Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  campaign Campaign? @relation(fields: [campaignId], references: [id], onDelete: SetNull)
 
   @@map("broadcasts")
 }
@@ -306,6 +389,7 @@ enum BroadcastChannel {
   WHATSAPP
   EMAIL
   SMS
+  INSTAGRAM
 }
 
 enum BroadcastStatus {

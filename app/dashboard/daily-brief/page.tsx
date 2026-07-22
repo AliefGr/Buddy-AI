@@ -1,7 +1,7 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { Calendar, Sparkles, Package, Users, ShoppingCart, TrendingUp, TrendingDown, Zap, Plus, Loader2 } from "lucide-react";
+import { Calendar, Sparkles, Package, Users, ShoppingCart, TrendingUp, TrendingDown, Zap, Plus, Loader2, X } from "lucide-react";
 import { Card } from "@/components/ui/Card";
 import { Button } from "@/components/ui/Button";
 
@@ -44,6 +44,74 @@ const tagColors: Record<string, string> = {
     Laporan: "bg-blue-100 text-blue-700",
 };
 
+function AddAgendaModal({ onClose, onSuccess }: { onClose: () => void; onSuccess: (item: AgendaItem) => void }) {
+    const [title, setTitle] = useState("");
+    const [time, setTime] = useState("09:00");
+    const [tag, setTag] = useState<string | null>(null);
+
+    function handleSubmit(e: React.FormEvent) {
+        e.preventDefault();
+        onSuccess({
+            id: Date.now().toString(),
+            title,
+            time,
+            tag,
+        });
+        onClose();
+    }
+
+    return (
+        <div className="fixed inset-0 bg-black/40 z-50 flex items-center justify-center p-4">
+            <div className="bg-white rounded-2xl w-full max-w-sm shadow-2xl">
+                <div className="flex items-center justify-between p-6 border-b border-gray-100">
+                    <h2 className="font-bold text-buddy-text-main">Tambah Agenda</h2>
+                    <button onClick={onClose} className="p-1.5 rounded-lg hover:bg-gray-100"><X className="w-4 h-4" /></button>
+                </div>
+                <form onSubmit={handleSubmit} className="p-6 space-y-4">
+                    <div>
+                        <label className="block text-xs font-semibold text-buddy-text-muted mb-1.5">Judul Agenda *</label>
+                        <input
+                            required
+                            value={title}
+                            onChange={(e) => setTitle(e.target.value)}
+                            className="w-full border border-buddy-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-buddy-purple"
+                            placeholder="Cek stok barang"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-buddy-text-muted mb-1.5">Waktu *</label>
+                        <input
+                            required
+                            type="time"
+                            value={time}
+                            onChange={(e) => setTime(e.target.value)}
+                            className="w-full border border-buddy-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-buddy-purple"
+                        />
+                    </div>
+                    <div>
+                        <label className="block text-xs font-semibold text-buddy-text-muted mb-1.5">Tag</label>
+                        <select
+                            value={tag ?? ""}
+                            onChange={(e) => setTag(e.target.value || null)}
+                            className="w-full border border-buddy-border rounded-xl px-3 py-2.5 text-sm focus:outline-none focus:border-buddy-purple"
+                        >
+                            <option value="">Tidak ada</option>
+                            <option value="Inventory">Inventory</option>
+                            <option value="Produk">Produk</option>
+                            <option value="Marketing">Marketing</option>
+                            <option value="Laporan">Laporan</option>
+                        </select>
+                    </div>
+                    <div className="flex gap-3 pt-2">
+                        <Button type="button" variant="ghost" size="sm" className="flex-1" onClick={onClose}>Batal</Button>
+                        <Button type="submit" variant="primary" size="sm" className="flex-1">Simpan</Button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    );
+}
+
 export default function DailyBriefPage() {
     const [todayData, setTodayData] = useState<TodayData | null>(null);
     const [lowStock, setLowStock] = useState<InventoryItem[]>([]);
@@ -51,6 +119,7 @@ export default function DailyBriefPage() {
     const [aiBrief, setAiBrief] = useState("");
     const [briefLoading, setBriefLoading] = useState(false);
     const [loading, setLoading] = useState(true);
+    const [showAddAgenda, setShowAddAgenda] = useState(false);
 
     useEffect(() => {
         Promise.all([
@@ -74,6 +143,10 @@ export default function DailyBriefPage() {
         } finally {
             setBriefLoading(false);
         }
+    }
+
+    function handleAddAgenda(item: AgendaItem) {
+        setAgenda(prev => [...prev, item]);
     }
 
     const highlights = [
@@ -210,7 +283,7 @@ export default function DailyBriefPage() {
                             </div>
                         )}
                         <div className="mt-4 pt-4 border-t border-gray-100">
-                            <Button variant="ghost" size="sm" className="w-full justify-center gap-2">
+                            <Button variant="ghost" size="sm" className="w-full justify-center gap-2" onClick={() => setShowAddAgenda(true)}>
                                 <Plus className="w-3.5 h-3.5" />
                                 Tambah Agenda
                             </Button>
@@ -218,6 +291,13 @@ export default function DailyBriefPage() {
                     </Card>
                 </div>
             </div>
+
+            {showAddAgenda && (
+                <AddAgendaModal
+                    onClose={() => setShowAddAgenda(false)}
+                    onSuccess={handleAddAgenda}
+                />
+            )}
         </>
     );
 }

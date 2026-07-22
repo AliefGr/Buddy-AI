@@ -6,3 +6,5 @@ export { QuickActions } from "./QuickActions";
 export { RealtimeSalesCard } from "./RealtimeSalesCard";
 export { RecentActivityCard } from "./RecentActivityCard";
 export { SalesChartCard } from "./SalesChartCard";
+export { SetupProgressCard } from "./SetupProgressCard";
+export { WelcomeBanner } from "./WelcomeBanner";

@@ -1,3 +1,4 @@
+import { WelcomeBanner } from "@/components/dashboard/WelcomeBanner";
 import { AiSummaryCard } from "@/components/dashboard/AiSummaryCard";
 import { RealtimeSalesCard } from "@/components/dashboard/RealtimeSalesCard";
 import { KpiSection } from "@/components/dashboard/KpiSection";
@@ -10,6 +11,9 @@ import { QuickActions } from "@/components/dashboard/QuickActions";
 export default function DashboardPage() {
     return (
         <>
+            {/* Onboarding welcome banner — auto-hides at 100% or when dismissed */}
+            <WelcomeBanner />
+
             {/* Hero: AI Summary + Realtime Sales */}
             <div className="grid grid-cols-1 lg:grid-cols-12 gap-4 lg:gap-6 mb-4 lg:mb-6">
                 <AiSummaryCard />

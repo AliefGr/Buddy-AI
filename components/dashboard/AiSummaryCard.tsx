@@ -24,7 +24,7 @@ export function AiSummaryCard() {
                 setGenerated(true);
             }
         } catch {
-            setBrief("Terjadi kesalahan. Pastikan GEMINI_API_KEY sudah dikonfigurasi.");
+            setBrief("Terjadi kesalahan. Pastikan GROQ_API_KEY sudah dikonfigurasi.");
             setGenerated(true);
         } finally {
             setLoading(false);

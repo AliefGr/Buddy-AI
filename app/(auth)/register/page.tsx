@@ -15,6 +15,7 @@ export default function RegisterPage() {
     const [loading, setLoading] = useState(false);
     const [errors, setErrors] = useState<{
         name?: string;
+        businessName?: string;
         email?: string;
         password?: string;
         confirmPassword?: string;
@@ -22,10 +23,22 @@ export default function RegisterPage() {
         general?: string;
     }>({});
 
+    async function handleGoogleSignIn() {
+        setLoading(true);
+        try {
+            await signIn("google", { callbackUrl: "/dashboard" });
+        } catch {
+            setErrors({ general: "Terjadi kesalahan. Silakan coba lagi." });
+        } finally {
+            setLoading(false);
+        }
+    }
+
     async function handleSubmit(e: React.FormEvent<HTMLFormElement>) {
         e.preventDefault();
         const form = e.currentTarget;
         const name = (form.elements.namedItem("name") as HTMLInputElement).value;
+        const businessName = (form.elements.namedItem("businessName") as HTMLInputElement).value;
         const email = (form.elements.namedItem("email") as HTMLInputElement).value;
         const password = (form.elements.namedItem("password") as HTMLInputElement).value;
         const confirmPassword = (form.elements.namedItem("confirmPassword") as HTMLInputElement).value;
@@ -33,6 +46,7 @@ export default function RegisterPage() {
 
         const newErrors: typeof errors = {};
         if (!name.trim()) newErrors.name = "Nama tidak boleh kosong";
+        if (!businessName.trim()) newErrors.businessName = "Nama bisnis tidak boleh kosong";
         if (!email) newErrors.email = "Email tidak boleh kosong";
         else if (!/\S+@\S+\.\S+/.test(email)) newErrors.email = "Format email tidak valid";
         if (!password) newErrors.password = "Password tidak boleh kosong";
@@ -53,7 +67,7 @@ export default function RegisterPage() {
             const res = await fetch("/api/auth/register", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
-                body: JSON.stringify({ name, email, password }),
+                body: JSON.stringify({ name, businessName, email, password }),
             });
 
             const data = await res.json();
@@ -105,6 +119,7 @@ export default function RegisterPage() {
 
             <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-4">
                 <Input id="name" name="name" type="text" label="Nama Lengkap" placeholder="Budi Santoso" autoComplete="name" error={errors.name} />
+                <Input id="businessName" name="businessName" type="text" label="Nama Bisnis" placeholder="Toko Budi, Warung Makan, dll" error={errors.businessName} />
                 <Input id="email" name="email" type="email" label="Email" placeholder="nama@bisnis.com" autoComplete="email" error={errors.email} />
                 <Input id="password" name="password" type="password" label="Password" placeholder="Minimal 8 karakter" autoComplete="new-password" error={errors.password} hint="Gunakan kombinasi huruf, angka, dan simbol" />
                 <Input id="confirmPassword" name="confirmPassword" type="password" label="Konfirmasi Password" placeholder="Ulangi password Anda" autoComplete="new-password" error={errors.confirmPassword} />
@@ -132,7 +147,13 @@ export default function RegisterPage() {
 
             <Divider label="atau" className="my-6" />
 
-            <Button variant="google" size="lg" className="w-full gap-3">
+            <Button 
+                variant="google" 
+                size="lg" 
+                className="w-full gap-3" 
+                onClick={handleGoogleSignIn}
+                disabled={loading}
+            >
                 <svg className="w-4 h-4" viewBox="0 0 24 24" aria-hidden="true">
                     <path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z" />
                     <path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z" />

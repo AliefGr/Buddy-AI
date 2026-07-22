@@ -22,7 +22,10 @@ export async function GET(request: NextRequest) {
     const categoryId = searchParams.get("categoryId") ?? "";
     const status = searchParams.get("status") ?? "";
     const page = Math.max(1, parseInt(searchParams.get("page") ?? "1"));
-    const limit = Math.min(50, Math.max(1, parseInt(searchParams.get("limit") ?? "20")));
+    const limit = Math.min(
+      50,
+      Math.max(1, parseInt(searchParams.get("limit") ?? "20")),
+    );
     const skip = (page - 1) * limit;
 
     const where = {
@@ -46,7 +49,9 @@ export async function GET(request: NextRequest) {
         orderBy: { createdAt: "desc" },
         include: {
           category: { select: { id: true, name: true, color: true } },
-          inventory: { select: { currentStock: true, status: true } },
+          inventory: {
+            select: { currentStock: true, status: true, minStock: true },
+          },
           _count: { select: { orderItems: true } },
         },
       }),
@@ -76,15 +81,29 @@ export async function POST(request: NextRequest) {
     if (!parsed.success) {
       return Response.json(
         { error: "Validasi gagal", details: parsed.error.flatten() },
-        { status: 400 }
+        { status: 400 },
       );
     }
 
-    const { categoryId, sku, name, description, price, costPrice, imageUrl, isActive } = parsed.data;
+    const {
+      categoryId,
+      sku,
+      name,
+      description,
+      price,
+      costPrice,
+      imageUrl,
+      isActive,
+    } = parsed.data;
 
-    const category = await prisma.category.findFirst({ where: { id: categoryId, storeId } });
+    const category = await prisma.category.findFirst({
+      where: { id: categoryId, storeId },
+    });
     if (!category) {
-      return Response.json({ error: "Kategori tidak ditemukan" }, { status: 404 });
+      return Response.json(
+        { error: "Kategori tidak ditemukan" },
+        { status: 404 },
+      );
     }
 
     const existingSku = await prisma.product.findUnique({
@@ -122,6 +141,9 @@ export async function POST(request: NextRequest) {
 
     return Response.json(product, { status: 201 });
   } catch {
-    return Response.json({ error: "Terjadi kesalahan server" }, { status: 500 });
+    return Response.json(
+      { error: "Terjadi kesalahan server" },
+      { status: 500 },
+    );
   }
 }

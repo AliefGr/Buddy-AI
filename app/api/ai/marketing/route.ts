@@ -1,12 +1,14 @@
 import { NextRequest } from "next/server";
 import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/session";
-import { generateText, isGeminiConfigured } from "@/lib/gemini";
+import { generateText, isAIConfigured } from "@/lib/ai";
 import { z } from "zod";
 
 const schema = z.object({
   productId: z.string().optional(),
-  type: z.enum(["caption", "hashtag", "promo", "description"]).default("caption"),
+  type: z
+    .enum(["caption", "hashtag", "promo", "description"])
+    .default("caption"),
   platform: z.enum(["instagram", "whatsapp", "tiktok"]).default("instagram"),
   productName: z.string().optional(),
   audience: z.string().optional(),
@@ -17,8 +19,11 @@ export async function POST(request: NextRequest) {
   try {
     const { storeId } = await requireAuth();
 
-    if (!isGeminiConfigured()) {
-      return Response.json({ error: "AI tidak dikonfigurasi" }, { status: 503 });
+    if (!isAIConfigured()) {
+      return Response.json(
+        { error: "AI tidak dikonfigurasi" },
+        { status: 503 },
+      );
     }
 
     const body = await request.json();
@@ -28,7 +33,8 @@ export async function POST(request: NextRequest) {
       return Response.json({ error: "Input tidak valid" }, { status: 400 });
     }
 
-    const { productId, type, platform, productName, audience, tone } = parsed.data;
+    const { productId, type, platform, productName, audience, tone } =
+      parsed.data;
 
     let productContext = "";
     if (productId) {
@@ -42,7 +48,8 @@ export async function POST(request: NextRequest) {
     }
 
     const platformGuide = {
-      instagram: "Instagram — kasual, visual, gunakan emoji, maks 2200 karakter",
+      instagram:
+        "Instagram — kasual, visual, gunakan emoji, maks 2200 karakter",
       whatsapp: "WhatsApp broadcast — personal, singkat, ada CTA jelas",
       tiktok: "TikTok caption — singkat, trendy, hashtag challenge",
     };
@@ -58,7 +65,9 @@ export async function POST(request: NextRequest) {
       productContext = `\nProduk: ${productName}`;
     }
     const audienceCtx = audience ? `\nTarget audiens: ${audience}` : "";
-    const toneCtx = tone ? `\nTone/gaya penulisan: ${tone} — sesuaikan nada dan pilihan kata` : "";
+    const toneCtx = tone
+      ? `\nTone/gaya penulisan: ${tone} — sesuaikan nada dan pilihan kata`
+      : "";
 
     const prompt = `Kamu adalah copywriter marketing UMKM Indonesia yang kreatif.
 ${typeGuide[type]} untuk platform ${platformGuide[platform]}.
@@ -72,6 +81,9 @@ Langsung berikan hasilnya tanpa penjelasan tambahan.`;
     return Response.json({ content, type, platform });
   } catch (error) {
     console.error("[AI Marketing]", error);
-    return Response.json({ error: "Gagal generate konten marketing" }, { status: 500 });
+    return Response.json(
+      { error: "Gagal generate konten marketing" },
+      { status: 500 },
+    );
   }
 }

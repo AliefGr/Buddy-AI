@@ -6,10 +6,11 @@ import {
     Bell,
     Shield,
     CreditCard,
+    Link2,
     ChevronRight,
 } from "lucide-react";
 
-export type SettingsTab = "profil" | "bisnis" | "notifikasi" | "keamanan" | "langganan";
+export type SettingsTab = "profil" | "bisnis" | "integrasi" | "notifikasi" | "keamanan" | "langganan";
 
 const navItems: Array<{
     id: SettingsTab;
@@ -28,6 +29,12 @@ const navItems: Array<{
             label: "Bisnis",
             icon: <Building2 className="w-4 h-4" />,
             description: "Info toko & bisnis",
+        },
+        {
+            id: "integrasi",
+            label: "Integrasi",
+            icon: <Link2 className="w-4 h-4" />,
+            description: "WA, email, Instagram",
         },
         {
             id: "notifikasi",

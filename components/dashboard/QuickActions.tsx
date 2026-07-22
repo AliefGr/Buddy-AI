@@ -39,9 +39,7 @@ export function QuickActions() {
             <h3 className="font-bold text-buddy-text-main mb-4">Aksi Cepat</h3>
             <div className="flex gap-4 flex-wrap">
                 {actions.map((action) => (
-                    <button key={action.label} onClick={action.onClick} className="text-left">
-                        <QuickActionButton {...action} />
-                    </button>
+                    <QuickActionButton key={action.label} {...action} />
                 ))}
             </div>
         </footer>
