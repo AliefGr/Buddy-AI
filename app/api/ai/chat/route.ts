@@ -3,7 +3,6 @@ import { prisma } from "@/lib/prisma";
 import { requireAuth } from "@/lib/session";
 import { generateText, isAIConfigured } from "@/lib/ai";
 import { z } from "zod";
-import type { Prisma } from "@prisma/client";
 
 const chatSchema = z.object({
   message: z.string().min(1).max(2000),

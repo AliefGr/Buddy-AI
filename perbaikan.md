@@ -1,216 +1,44 @@
-# TASK
+Berikan prompt ini:
 
-Lakukan audit dan perbaikan seluruh TypeScript error yang menyebabkan build gagal di Vercel.
+Vercel deployment gagal dengan error:
 
-Jangan hanya memperbaiki satu baris kode.
+Module "@prisma/client" has no exported member "Prisma".
 
-Cari akar masalahnya dan pastikan project dapat di-build dengan sukses menggunakan:
+Project menggunakan:
 
-```bash
-npm run build
-```
+- Prisma 7.8.0
+- @prisma/client 7.8.0
 
----
+Lakukan audit pada file:
 
-# ERROR SAAT INI
-
-Vercel Build Error:
-
-```
-Type error:
-
-./app/api/ai/chat/route.ts:68:42
-
-Parameter 'p' implicitly has an 'any' type.
-
-const topProductIds = topProducts.map((p) => p.productId);
-```
-
-Build gagal pada tahap:
-
-```
-Running TypeScript...
-```
-
-Bukan saat compile.
-
----
-
-# TUJUAN
-
-Saya ingin project benar-benar lolos:
-
-- TypeScript Check
-- Next.js Build
-- Vercel Deployment
-
-Tanpa mengorbankan type safety.
-
----
-
-# YANG HARUS DILAKUKAN
-
-## 1. Audit file
-
-Periksa:
-
-```
 app/api/ai/chat/route.ts
-```
 
-Cari asal variabel:
+Tugas:
 
-```
-topProducts
-```
-
-Identifikasi:
-
-- berasal dari query Prisma?
-- berasal dari raw query?
-- berasal dari array biasa?
-- apakah tipenya hilang?
-
----
-
-## 2. Jangan gunakan implicit any
-
-Jangan gunakan:
+1. Cari semua import:
 
 ```ts
-(p)
-```
+import type { Prisma } from "@prisma/client";
+Jika import tersebut tidak benar-benar diperlukan, hapus.
+Gunakan type inference dari Prisma.
+Jangan menggunakan any.
+Pastikan callback map/filter/reduce memiliki tipe yang benar tanpa mengimpor namespace Prisma yang tidak tersedia.
+Tambahkan script:
+"postinstall": "prisma generate"
 
-atau
+ke package.json apabila belum ada.
 
-```ts
-(item)
-```
-
-tanpa tipe.
-
-Gunakan tipe yang benar.
-
-Misalnya:
-
-```ts
-(p: PrismaType)
-```
-
-atau
-
-```ts
-type TopProduct = {
-  productId: string | null;
-}
-
-const topProducts: TopProduct[] = ...
-```
-
-Gunakan tipe Prisma jika sudah tersedia.
-
-Jangan menggunakan `any` kecuali benar-benar tidak ada alternatif.
-
----
-
-## 3. Audit seluruh file
-
-Jangan berhenti setelah memperbaiki satu error.
-
-Lanjutkan audit seluruh project.
-
-Cari:
-
-- implicit any
-- unknown
-- nullable
-- optional chaining yang salah
-- Prisma typing
-- callback map/filter/reduce
-- async return type
-- Promise typing
-
-Pastikan tidak ada lagi TypeScript Error.
-
----
-
-## 4. Jalankan Build
-
-Setelah selesai lakukan pengecekan dengan:
-
-```bash
+Jalankan kembali:
 npm run build
-```
 
-Jika masih gagal,
+Perbaiki semua TypeScript error sampai build berhasil.
 
-lanjutkan memperbaiki semua error berikutnya.
+Jangan menonaktifkan strict mode.
+Jangan menggunakan ignoreBuildErrors.
 
-Jangan berhenti sampai build sukses.
-
----
-
-## 5. Jangan menurunkan kualitas TypeScript
-
-DILARANG:
-
-❌ menonaktifkan TypeScript
-
-❌ skipLibCheck untuk menyembunyikan error project
-
-❌ strict = false
-
-❌ noImplicitAny = false
-
-❌ ignoreBuildErrors = true
-
-Saya ingin TypeScript tetap strict.
 
 ---
 
-## 6. Pertahankan Arsitektur
+## Saya yakin 90% penyebabnya ada di file itu
 
-Jangan mengubah:
-
-- struktur folder
-- API
-- Prisma Schema
-- Business Logic
-
-Hanya perbaiki typing.
-
----
-
-# OUTPUT
-
-Berikan laporan:
-
-## Error yang ditemukan
-
-- File
-- Baris
-- Penyebab
-
-## Solusi
-
-Kode sebelum
-
-↓
-
-Kode sesudah
-
-↓
-
-Alasan perubahan
-
-Kemudian lanjutkan sampai:
-
-```
-✓ TypeScript passed
-
-✓ npm run build berhasil
-
-✓ Siap deploy ke Vercel
-```
-
-Target akhirnya adalah project Buddy AI berhasil di-deploy ke Vercel tanpa TypeScript error.
+Kalau kamu kirim **`app/api/ai/chat/route.ts`**, saya bisa langsung menunjukkan **baris mana yang harus dihapus atau diubah** sehingga kemungkinan besar build berikutnya akan lolos.
